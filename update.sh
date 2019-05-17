@@ -40,6 +40,7 @@ packages+=("ifupdown")
 packages+=("iproute2")
 packages+=("lsb-base")
 packages+=("netbase")
+packages+=("netcat-openbsd")
 packages+=("ntpdate")
 packages+=("raspbian-archive-keyring")
 packages+=("rng-tools")
@@ -57,6 +58,7 @@ packages+=("libattr1")
 packages+=("libaudit-common")
 packages+=("libaudit1")
 packages+=("libblkid1")
+packages+=("libbsd0")
 packages+=("libbz2-1.0")
 packages+=("libc-bin")
 packages+=("libc6")
@@ -120,16 +122,38 @@ packages_sha256=
 download_file() {
 	local download_source=$1
 	local download_target=$2
-	if [ -z "${download_target}" ]; then
-		if ! wget -q --show-progress --no-cache "${download_source}"; then
-			echo -e "ERROR\nDownloading file '${download_source}' failed! Exiting."
-			exit 1
-		fi
+	local progress_option
+	if wget --show-progress --version &> /dev/null; [ "${?}" -eq 2 ]; then
+	    progress_option=()
 	else
-		if ! wget -q --show-progress --no-cache -O "${download_target}" "${download_source}"; then
-			echo -e "ERROR\nDownloading file '${download_source}' failed! Exiting."
-			exit 1
-		fi
+	    progress_option=("--show-progress")
+	fi
+	if [ -z "${download_target}" ]; then
+		for i in $(seq 1 5); do
+			if ! wget "${progress_option[@]}" -q --no-cache "${download_source}"; then
+				if [ "${i}" != "5" ]; then
+					sleep 5
+				else
+					echo -e "ERROR\nDownloading file '${download_source}' failed! Exiting."
+					exit 1
+				fi
+			else
+				break
+			fi
+		done
+	else
+		for i in $(seq 1 5); do
+			if ! wget "${progress_option[@]}" -q --no-cache -O "${download_target}" "${download_source}"; then
+				if [ "${i}" != "5" ]; then
+					sleep 5
+				else
+					echo -e "ERROR\nDownloading file '${download_source}' failed! Exiting."
+					exit 1
+				fi
+			else
+				break
+			fi
+		done
 	fi
 }
 
